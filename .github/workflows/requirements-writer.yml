@@ -9,7 +9,7 @@ on:
         default: "Menu button should not be visible to non-admin users."
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   generate-requirements:
@@ -19,38 +19,13 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup GitHub CLI
-        run: gh --version
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Install GitHub Copilot CLI
         run: curl -fsSL https://gh.io/copilot-install | bash
 
       - name: Run Requirements Writer Agent
-        id: run_agent
         run: |
           copilot --agent=requirements-writer \
-            --prompt "$COPILOT_PROMPT" \
-            > requirements-output.md
+            --prompt "$COPILOT_PROMPT"
         env:
           GH_TOKEN: ${{ secrets.COPILOT_TOKEN }}
           COPILOT_PROMPT: ${{ inputs.prompt }}
-
-      - name: Upload requirements as artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: generated-requirements
-          path: requirements-output.md
-
-      - name: Commit requirements to repo
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          mkdir -p .github/requirements
-          mv requirements-output.md .github/requirements/requirements-$(date +%Y%m%d-%H%M%S).md
-          git add .github/requirements/
-          git commit -m "chore: auto-generated requirements from agent"
-          git push
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
