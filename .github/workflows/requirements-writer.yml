@@ -1,0 +1,57 @@
+name: Requirements Writer Agent
+
+on:
+  workflow_dispatch:
+    inputs:
+      prompt:
+        description: "Business description to convert into structured requirements"
+        required: true
+        default: "Menu button should not be visible to non-admin users."
+
+permissions:
+  contents: write
+
+jobs:
+  generate-requirements:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup GitHub CLI
+        run: gh --version
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install GitHub Copilot CLI
+        run: gh extension install github/gh-copilot
+        env:
+          GH_TOKEN: ${{ secrets.COPILOT_TOKEN }}
+
+      - name: Run Requirements Writer Agent
+        id: run_agent
+        run: |
+          gh copilot --agent=requirements-writer \
+            --prompt "${{ github.event.inputs.prompt }}" \
+            > requirements-output.md
+        env:
+          GH_TOKEN: ${{ secrets.COPILOT_TOKEN }}
+
+      - name: Upload requirements as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-requirements
+          path: requirements-output.md
+
+      - name: Commit requirements to repo
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          mkdir -p .github/requirements
+          mv requirements-output.md .github/requirements/requirements-$(date +%Y%m%d-%H%M%S).md
+          git add .github/requirements/
+          git commit -m "chore: auto-generated requirements from agent"
+          git push
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
