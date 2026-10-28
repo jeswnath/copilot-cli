@@ -25,18 +25,17 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install GitHub Copilot CLI
-        run: gh extension install github/gh-copilot
-        env:
-          GH_TOKEN: ${{ secrets.COPILOT_TOKEN }}
+        run: curl -fsSL https://gh.io/copilot-install | bash
 
       - name: Run Requirements Writer Agent
         id: run_agent
         run: |
-          gh copilot --agent=requirements-writer \
-            --prompt "${{ github.event.inputs.prompt }}" \
+          copilot --agent=requirements-writer \
+            --prompt "$COPILOT_PROMPT" \
             > requirements-output.md
         env:
           GH_TOKEN: ${{ secrets.COPILOT_TOKEN }}
+          COPILOT_PROMPT: ${{ inputs.prompt }}
 
       - name: Upload requirements as artifact
         uses: actions/upload-artifact@v4
